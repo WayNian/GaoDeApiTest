@@ -3,6 +3,7 @@ package com.waynian.gaodeapitest;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -42,8 +43,9 @@ public class CameraActivity extends Activity {
     // UI相关
     private SurfaceView surfaceView;
     private SurfaceHolder surfaceHolder;
-    private Button okButton, photoButton, videoButton, browseButton,bt_enter_map;
-//    private Spinner channelSpinner;
+    private Button okButton, photoButton, videoButton, browseButton, bt_enter_map;
+    private static ProgressDialog progDialog = null;// 进度框
+    //    private Spinner channelSpinner;
 //    private TextView tv_jd;
     private LinearLayout mDitu;
 
@@ -90,8 +92,6 @@ public class CameraActivity extends Activity {
 
         // 初始化surfaceView
         surfaceView();
-
-
 
 
     }
@@ -199,13 +199,35 @@ public class CameraActivity extends Activity {
 //                    browse();
 //                    break;
                 case R.id.bt_enter_map:
-                    Intent intent = new Intent(getApplicationContext(),BuslineActivity.class);
+                    show_Dialog();
+                    Intent intent = new Intent(getApplicationContext(), BuslineActivity.class);
                     startActivity(intent);
                     break;
                 default:
                     break;
             }
         }
+    }
+
+
+    public void show_Dialog() {
+        if (progDialog == null) {
+            progDialog = new ProgressDialog(this);
+            progDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+            progDialog.setIndeterminate(false);
+            progDialog.setCancelable(true);
+            progDialog.setMessage("正在加载....");
+            progDialog.show();
+        }
+
+    }
+
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        progDialog.dismiss();
+
     }
 
     private void ok_choice() {
@@ -445,6 +467,7 @@ public class CameraActivity extends Activity {
             }
         }
     };
+
 
     @Override
     public void onDestroy() {

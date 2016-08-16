@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -150,7 +151,7 @@ public class BuslineActivity extends Activity implements OnMarkerClickListener,
     public void searchLine() {
         cityCode = itemCitys.substring(itemCitys.indexOf("-") + 1);
         currentpage = 0;// 第一页默认从0开始
-        showProgressDialog();
+//        showProgressDialog();
         busLineQuery = new BusLineQuery(search, SearchType.BY_LINE_NAME,
                 cityCode);// 第一个参数表示公交线路名，第二个参数表示公交线路查询，第三个参数表示所在城市名或者城市区号
         busLineQuery.setPageSize(10);// 设置每页返回多少条数据
@@ -234,25 +235,25 @@ public class BuslineActivity extends Activity implements OnMarkerClickListener,
      */
     public void showResultList(List<BusLineItem> busLineItems) {
         BusLineDialog busLineDialog = new BusLineDialog(this, busLineItems);
-        busLineDialog.onListItemClicklistener(new OnListItemlistener() {
-            @Override
-            public void onListItemClick(BusLineDialog dialog,
-                                        final BusLineItem item) {
+//        busLineDialog.onListItemClicklistener(new OnListItemlistener() {
+//            @Override
+//            public void onListItemClick(BusLineDialog dialog,
+//                                        final BusLineItem item) {
                 showProgressDialog();
-
-                String lineId = item.getBusLineId();// 得到当前点击item公交线路id
+//                String lineId = item.getBusLineId();// 得到当前点击item公交线路id
+                String lineId = busLineItems.get(0).getBusLineId();// 得到当前点击item公交线路id
                 busLineQuery = new BusLineQuery(lineId, SearchType.BY_LINE_ID,
                         cityCode);// 第一个参数表示公交线路id，第二个参数表示公交线路id查询，第三个参数表示所在城市名或者城市区号
                 BusLineSearch busLineSearch = new BusLineSearch(
                         BuslineActivity.this, busLineQuery);
                 busLineSearch.setOnBusLineSearchListener(BuslineActivity.this);
                 busLineSearch.searchBusLineAsyn();// 异步查询公交线路id
-            }
-        });
-        busLineDialog.show();
+//            }
+//        });
+        busLineDialog.get_station();
+//        busLineDialog.show();
 
     }
-
 
     interface OnListItemlistener {
         public void onListItemClick(BusLineDialog dialog, BusLineItem item);
@@ -261,7 +262,7 @@ public class BuslineActivity extends Activity implements OnMarkerClickListener,
     /**
      * 所有公交线路显示页面
      */
-    class BusLineDialog extends Dialog implements OnClickListener {
+    class BusLineDialog extends Dialog {
 
         private List<BusLineItem> busLineItems;
         private BusLineAdapter busLineAdapter;
@@ -285,62 +286,69 @@ public class BuslineActivity extends Activity implements OnMarkerClickListener,
             busLineAdapter = new BusLineAdapter(context, busLineItems);
         }
 
+//
         @Override
         protected void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
             setContentView(R.layout.busline_dialog);
-            preButton = (Button) findViewById(R.id.preButton);
-            nextButton = (Button) findViewById(R.id.nextButton);
-            listView = (ListView) findViewById(R.id.listview);
-            listView.setAdapter(busLineAdapter);
-            listView.setOnItemClickListener(new OnItemClickListener() {
-                @Override
-                public void onItemClick(AdapterView<?> arg0, View arg1,
-                                        int arg2, long arg3) {
-                    onListItemlistener.onListItemClick(BusLineDialog.this,
-                            busLineItems.get(arg2));
-                    dismiss();
-					/*
-					 *获取公交线路  起步价 所有站点信息
-					 */
-                    tv_bus_name.setText(busLineItems.get(arg2).getBusLineType() + ":" + busLineItems.get(arg2).getBusLineName());
-                    tv_bus_price.setText("起步价：" + busLineItems.get(arg2).getTotalPrice());
-                    Log.e(TGA, "起始站" + busLineItems.get(arg2).getOriginatingStation());
-                    Log.e(TGA, "终点站" + busLineItems.get(arg2).getTerminalStation());
+//            Intent intent = new Intent(getApplicationContext(),BuslineActivity.class);
+//            startActivity(intent);
+//            preButton = (Button) findViewById(R.id.preButton);
+//            nextButton = (Button) findViewById(R.id.nextButton);
+//            listView = (ListView) findViewById(R.id.listview);
+//            listView.setAdapter(busLineAdapter);
+//            listView.setOnItemClickListener(new OnItemClickListener() {
+//                @Override
+//                public void onItemClick(AdapterView<?> arg0, View arg1,
+//                                        int arg2, long arg3) {
+//                    onListItemlistener.onListItemClick(BusLineDialog.this,
+//                            busLineItems.get(arg2));
+//                    dismiss();
+//                    get_station();
+//
+//                }
+//            });
+//            preButton.setOnClickListener(this);
+//            nextButton.setOnClickListener(this);
+//            if (currentpage <= 0) {
+//                preButton.setEnabled(false);
+//            }
+//            if (currentpage >= busLineResult.getPageCount() - 1) {
+//                nextButton.setEnabled(false);
+//            }
+        }
+
+        public void get_station() {
+            	/*
+                 *获取公交线路  起步价 所有站点信息
+				 */
+            tv_bus_name.setText(busLineItems.get(0).getBusLineType() + ":" + busLineItems.get(0).getBusLineName());
+            tv_bus_price.setText("起步价：" + busLineItems.get(0).getTotalPrice());
+            Log.e(TGA, "起始站" + busLineItems.get(0).getOriginatingStation());
+            Log.e(TGA, "终点站" + busLineItems.get(0).getTerminalStation());
 //					Log.e(TGA,"所有站点" +busLineItems.get(arg2).getBusStations().get(0).getBusStationName());
-                    List<BusStationItem> list = busLineItems.get(arg2).getBusStations();
-                    String station = list.get(0).getBusStationName();
-                    for (int i = 1; i < list.size(); i++) {
-                        Log.e(TGA, "所有站点" + list.get(i).getBusStationName());
-                        station = station + "→" + list.get(i).getBusStationName();
-                    }
-                    tv_bus_station.setText(station);
+            List<BusStationItem> list = busLineItems.get(0).getBusStations();
+            String station = list.get(0).getBusStationName();
+            for (int i = 1; i < list.size(); i++) {
+                Log.e(TGA, "所有站点：" + list.get(i).getBusStationName());
+                station = station + "→" + list.get(i).getBusStationName();
+            }
+            tv_bus_station.setText(station);
 
-                }
-            });
-            preButton.setOnClickListener(this);
-            nextButton.setOnClickListener(this);
-            if (currentpage <= 0) {
-                preButton.setEnabled(false);
-            }
-            if (currentpage >= busLineResult.getPageCount() - 1) {
-                nextButton.setEnabled(false);
-            }
         }
-
-        @Override
-        public void onClick(View v) {
-            this.dismiss();
-            if (v.equals(preButton)) {
-                currentpage--;
-            } else if (v.equals(nextButton)) {
-                currentpage++;
-            }
-            showProgressDialog();
-            busLineQuery.setPageNumber(currentpage);// 设置公交查询第几页
-            busLineSearch.setOnBusLineSearchListener(BuslineActivity.this);
-            busLineSearch.searchBusLineAsyn();// 异步查询公交线路名称
-        }
+//        @Override
+//        public void onClick(View v) {
+//            this.dismiss();
+//            if (v.equals(preButton)) {
+//                currentpage--;
+//            } else if (v.equals(nextButton)) {
+//                currentpage++;
+//            }
+//            showProgressDialog();
+//            busLineQuery.setPageNumber(currentpage);// 设置公交查询第几页
+//            busLineSearch.setOnBusLineSearchListener(BuslineActivity.this);
+//            busLineSearch.searchBusLineAsyn();// 异步查询公交线路名称
+//        }
     }
 
     /**
