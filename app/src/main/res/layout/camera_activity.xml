@@ -71,7 +71,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
-            android:text="速度：60KM/H"
+            android:text="速度：35KM/H"
             android:textColor="@color/black"
             android:textSize="23sp" />
 
@@ -85,7 +85,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
-            android:text="本站：天隆寺"
+            android:text="本站：石马"
             android:textColor="@color/black"
             android:textSize="23sp" />
 
@@ -99,7 +99,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
-            android:text="下站：安德门"
+            android:text="下站：荷塘村"
             android:textColor="@color/black"
             android:textSize="23sp" />
 
@@ -129,7 +129,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
-                android:text="经度：118°46'"
+                android:text="经度：118.786"
                 android:textColor="@color/black"
                 android:textSize="23sp" />
 
@@ -138,7 +138,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
-                android:text="纬度：32°03'"
+                android:text="纬度：31.932'"
                 android:textColor="@color/black"
                 android:textSize="23sp" />
         </LinearLayout>
@@ -151,9 +151,10 @@
 
         <Button
             android:id="@+id/bt_enter_map"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_marginTop="5dp"
+            android:textSize="40dp"
             android:text="进入地图" />
     </LinearLayout>
 

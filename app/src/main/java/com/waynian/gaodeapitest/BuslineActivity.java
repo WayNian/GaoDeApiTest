@@ -4,15 +4,9 @@ import android.app.Activity;
 import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.Context;
-import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
-import android.view.View.OnClickListener;
-import android.widget.AdapterView;
-import android.widget.AdapterView.OnItemClickListener;
-import android.widget.AdapterView.OnItemSelectedListener;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
@@ -38,8 +32,6 @@ import com.amap.api.services.busline.BusStationSearch.OnBusStationSearchListener
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * AMapV1地图中简单介绍公交线路搜索
@@ -52,7 +44,7 @@ public class BuslineActivity extends Activity implements OnMarkerClickListener,
     private MapView mapView;
     private ProgressDialog progDialog = null;// 进度框
     private EditText searchName;// 输入公交线路名称
-    private TextView tv_bus_name, tv_bus_price, tv_bus_station;
+    private TextView tv_bus_name, tv_bus_station;
     private Spinner selectCity;// 选择城市下拉列表
     private String itemCitys = "南京-025";
     private String cityCode = "";// 城市区号
@@ -68,6 +60,7 @@ public class BuslineActivity extends Activity implements OnMarkerClickListener,
     private BusLineSearch busLineSearch;// 公交线路列表查询
     private String search = "98";
 
+    private ListView lv_station;
     @Override
     protected void onCreate(Bundle bundle) {
         super.onCreate(bundle);
@@ -87,8 +80,8 @@ public class BuslineActivity extends Activity implements OnMarkerClickListener,
             setUpMap();
         }
         tv_bus_name = (TextView) findViewById(R.id.tv_bus_name);
-        tv_bus_price = (TextView) findViewById(R.id.tv_bus_price);
         tv_bus_station = (TextView) findViewById(R.id.tv_bus_station);
+        lv_station = (ListView) findViewById(R.id.lv_station);
 //		Button searchByName = (Button) findViewById(R.id.searchbyname);
 //		searchByName.setOnClickListener(this);
 //		selectCity = (Spinner) findViewById(R.id.cityName);
@@ -151,7 +144,7 @@ public class BuslineActivity extends Activity implements OnMarkerClickListener,
     public void searchLine() {
         cityCode = itemCitys.substring(itemCitys.indexOf("-") + 1);
         currentpage = 0;// 第一页默认从0开始
-//        showProgressDialog();
+        showProgressDialog();
         busLineQuery = new BusLineQuery(search, SearchType.BY_LINE_NAME,
                 cityCode);// 第一个参数表示公交线路名，第二个参数表示公交线路查询，第三个参数表示所在城市名或者城市区号
         busLineQuery.setPageSize(10);// 设置每页返回多少条数据
@@ -267,8 +260,11 @@ public class BuslineActivity extends Activity implements OnMarkerClickListener,
         private List<BusLineItem> busLineItems;
         private BusLineAdapter busLineAdapter;
         private Button preButton, nextButton;
-        private ListView listView;
         protected OnListItemlistener onListItemlistener;
+        private List<String> list_station;
+
+        private MyAdapter myAdapter;
+        private Context ctx;
 
         public BusLineDialog(Context context, int theme) {
             super(context, theme);
@@ -287,10 +283,10 @@ public class BuslineActivity extends Activity implements OnMarkerClickListener,
         }
 
 //
-        @Override
-        protected void onCreate(Bundle savedInstanceState) {
-            super.onCreate(savedInstanceState);
-            setContentView(R.layout.busline_dialog);
+//        @Override
+//        protected void onCreate(Bundle savedInstanceState) {
+//            super.onCreate(savedInstanceState);
+//            setContentView(R.layout.busline_dialog);
 //            Intent intent = new Intent(getApplicationContext(),BuslineActivity.class);
 //            startActivity(intent);
 //            preButton = (Button) findViewById(R.id.preButton);
@@ -316,26 +312,39 @@ public class BuslineActivity extends Activity implements OnMarkerClickListener,
 //            if (currentpage >= busLineResult.getPageCount() - 1) {
 //                nextButton.setEnabled(false);
 //            }
-        }
+//        }
 
         public void get_station() {
             	/*
                  *获取公交线路  起步价 所有站点信息
 				 */
-            tv_bus_name.setText(busLineItems.get(0).getBusLineType() + ":" + busLineItems.get(0).getBusLineName());
-            tv_bus_price.setText("起步价：" + busLineItems.get(0).getTotalPrice());
-            Log.e(TGA, "起始站" + busLineItems.get(0).getOriginatingStation());
-            Log.e(TGA, "终点站" + busLineItems.get(0).getTerminalStation());
-//					Log.e(TGA,"所有站点" +busLineItems.get(arg2).getBusStations().get(0).getBusStationName());
+            tv_bus_name.setText("公交：98路");
             List<BusStationItem> list = busLineItems.get(0).getBusStations();
-            String station = list.get(0).getBusStationName();
-            for (int i = 1; i < list.size(); i++) {
-                Log.e(TGA, "所有站点：" + list.get(i).getBusStationName());
-                station = station + "→" + list.get(i).getBusStationName();
+//            String station = list.get(0).getBusStationName();
+//            for (int i = 1; i < list.size(); i++) {
+//                Log.e(TGA, "所有站点：" + list.get(i).getBusStationName());
+//                station = station + "→" + list.get(i).getBusStationName();
+//            }
+//            tv_bus_station.setText(station);
+            String station = null;
+            list_station = new ArrayList<String>();
+            for (int i = 0; i < list.size(); i++) {
+                station = list.get(i).getBusStationName();
+                list_station.add(station);
             }
-            tv_bus_station.setText(station);
+            Log.e(TGA, String.valueOf(list_station));
 
+            myAdapter = new MyAdapter(BuslineActivity.this,list_station);
+            lv_station.setAdapter(myAdapter);
+//            lv_station.setStackFromBottom(true);
+//            lv_station.setTranscriptMode(ListView.TRANSCRIPT_MODE_ALWAYS_SCROLL);
+
+            int index = lv_station.getFirstVisiblePosition();
+            View v = lv_station.getChildAt(10);
+            int top = (v == null)?10:v.getTop();
+            lv_station.setSelectionFromTop(15,top);
         }
+
 //        @Override
 //        public void onClick(View v) {
 //            this.dismiss();
