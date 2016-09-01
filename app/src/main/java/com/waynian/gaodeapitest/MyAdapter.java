@@ -20,6 +20,7 @@ public class MyAdapter extends BaseAdapter {
     private Context ctx;
     private List<String> data;
     private LayoutInflater layoutInflater;
+    public TextView tv_station;
 
     public MyAdapter(Context ctx, List<String> data) {
         this.ctx = ctx;
@@ -45,7 +46,7 @@ public class MyAdapter extends BaseAdapter {
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         View view = layoutInflater.inflate(R.layout.list_item, null);
-        TextView tv_station = (TextView) view.findViewById(R.id.tv_station);
+        tv_station = (TextView) view.findViewById(R.id.tv_station);
         tv_station.setText(data.get(position));
 
         String station = "石马";
@@ -55,24 +56,21 @@ public class MyAdapter extends BaseAdapter {
         if (start_station.equals(data.get(position))) {
             tv_station.setText(data.get(0) + "  起始站");
             tv_station.setTextColor(Color.BLUE);
-        }else if (end_station.equals(data.get(position))) {
+        } else if (end_station.equals(data.get(position))) {
             tv_station.setText(data.get(data.size() - 1) + "  终点站");
             tv_station.setTextColor(Color.BLUE);
-        }else if(station.equals(data.get(position))){
+        }else if (station.equals(data.get(position))){
             tv_station.setText(data.get(position));
             tv_station.setTextColor(Color.RED);
         }
 
-//       if (position<19){
-//            tv_station.setText(data.get(position));
-//            tv_station.setTextColor(Color.RED);
-//        }else if (position>19){
-//            tv_station.setText(data.get(position));
-//            tv_station.setTextColor(Color.BLUE);
-//        }else if (position == 19){
-//           tv_station.setText(data.get(position));
-//           tv_station.setTextColor(Color.YELLOW);
-//       }
+        if (BuslineActivity.station != null) {
+            tv_station.setTextColor(Color.BLACK);
+            if (BuslineActivity.station.equals(data.get(position))) {
+                tv_station.setText(data.get(position));
+                tv_station.setTextColor(Color.RED);
+            }
+        }
         return view;
     }
 }

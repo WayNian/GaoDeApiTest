@@ -4,20 +4,25 @@ import android.app.Activity;
 import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.graphics.Color;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
-import android.widget.EditText;
 import android.widget.ListView;
-import android.widget.Spinner;
 import android.widget.TextView;
 
 import com.amap.api.maps2d.AMap;
 import com.amap.api.maps2d.AMap.InfoWindowAdapter;
 import com.amap.api.maps2d.AMap.OnMarkerClickListener;
+import com.amap.api.maps2d.CameraUpdateFactory;
 import com.amap.api.maps2d.MapView;
+import com.amap.api.maps2d.model.BitmapDescriptorFactory;
+import com.amap.api.maps2d.model.LatLng;
+import com.amap.api.maps2d.model.LatLngBounds;
 import com.amap.api.maps2d.model.Marker;
+import com.amap.api.maps2d.model.MarkerOptions;
 import com.amap.api.maps2d.overlay.BusLineOverlay;
 import com.amap.api.services.busline.BusLineItem;
 import com.amap.api.services.busline.BusLineQuery;
@@ -32,20 +37,20 @@ import com.amap.api.services.busline.BusStationSearch.OnBusStationSearchListener
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 /**
  * AMapV1地图中简单介绍公交线路搜索
  */
 public class BuslineActivity extends Activity implements OnMarkerClickListener,
-        InfoWindowAdapter, OnBusLineSearchListener,
+        InfoWindowAdapter, OnBusLineSearchListener, AMap.OnMapLoadedListener,
         OnBusStationSearchListener {
     private static final String TGA = "BuslineActivity";
     private AMap aMap;
     private MapView mapView;
     private ProgressDialog progDialog = null;// 进度框
-    private EditText searchName;// 输入公交线路名称
-    private TextView tv_bus_name, tv_bus_station;
-    private Spinner selectCity;// 选择城市下拉列表
+    private TextView tv_bus_name, tv_bus_station, tv_cur_station;
     private String itemCitys = "南京-025";
     private String cityCode = "";// 城市区号
     private int currentpage = 0;// 公交搜索当前页，第一页从0开始
@@ -60,7 +65,18 @@ public class BuslineActivity extends Activity implements OnMarkerClickListener,
     private BusLineSearch busLineSearch;// 公交线路列表查询
     private String search = "98";
 
+    private LatLng latlng = new LatLng(31.963451, 118.777519);
+
     private ListView lv_station;
+
+    private Timer mTimer;
+    private Handler mHandler;
+    private int timecount;
+    private Marker marker;
+
+    private MyAdapter myAdapter;
+    public static String station;
+
     @Override
     protected void onCreate(Bundle bundle) {
         super.onCreate(bundle);
@@ -69,6 +85,23 @@ public class BuslineActivity extends Activity implements OnMarkerClickListener,
         mapView.onCreate(bundle);// 此方法必须重写
         init();
         searchLine();
+//        drawMarkers();
+        mTimer = new Timer();
+        //开始TimeTask
+        setTimeTask();
+    }
+
+    private void setTimeTask() {
+        mTimer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                Message message = new Message();
+                message.what = 1;
+                mHandler.sendMessage(message);
+            }
+            //1000毫秒之后，1000毫秒执行一次
+        }, 10000, 10000);
+
     }
 
     /**
@@ -81,17 +114,8 @@ public class BuslineActivity extends Activity implements OnMarkerClickListener,
         }
         tv_bus_name = (TextView) findViewById(R.id.tv_bus_name);
         tv_bus_station = (TextView) findViewById(R.id.tv_bus_station);
+        tv_cur_station = (TextView) findViewById(R.id.tv_cur_station);
         lv_station = (ListView) findViewById(R.id.lv_station);
-//		Button searchByName = (Button) findViewById(R.id.searchbyname);
-//		searchByName.setOnClickListener(this);
-//		selectCity = (Spinner) findViewById(R.id.cityName);
-//		ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
-//				android.R.layout.simple_spinner_item, itemCitys);
-//		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-//		selectCity.setAdapter(adapter);
-//		selectCity.setPrompt("请选择城市：");
-//		selectCity.setOnItemSelectedListener(this);
-//		searchName = (EditText) findViewById(R.id.busName);
     }
 
     /**
@@ -100,6 +124,7 @@ public class BuslineActivity extends Activity implements OnMarkerClickListener,
     private void setUpMap() {
         aMap.setOnMarkerClickListener(this);
         aMap.setInfoWindowAdapter(this);
+        aMap.setOnMapLoadedListener(this);// 设置amap加载成功事件监听器
     }
 
     /**
@@ -136,7 +161,33 @@ public class BuslineActivity extends Activity implements OnMarkerClickListener,
     protected void onDestroy() {
         super.onDestroy();
         mapView.onDestroy();
+        mTimer.cancel();
     }
+
+    /**
+     * 绘制系统默认的1种marker背景图片
+     */
+    public void drawMarkers(String station, LatLng time_latLng) {
+        marker = aMap.addMarker(new MarkerOptions()
+                .position(time_latLng)
+                .title(station)
+                .icon(BitmapDescriptorFactory
+                        .defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
+                .draggable(true));
+        marker.showInfoWindow();// 设置默认显示一个infowinfow
+    }
+
+    /**
+     * 监听amap地图加载成功事件回调
+     */
+    @Override
+    public void onMapLoaded() {
+        // 设置所有maker显示在当前可视区域地图中
+        LatLngBounds bounds = new LatLngBounds.Builder()
+                .include(latlng).build();
+        aMap.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds, 10));
+    }
+
 
     /**
      * 公交线路搜索
@@ -152,14 +203,7 @@ public class BuslineActivity extends Activity implements OnMarkerClickListener,
         busLineSearch = new BusLineSearch(this, busLineQuery);// 设置条件
         busLineSearch.setOnBusLineSearchListener(this);// 设置查询结果的监听
         busLineSearch.searchBusLineAsyn();// 异步查询公交线路名称
-        // 公交站点搜索事例
-        /*
-         * BusStationQuery query = new BusStationQuery(search,cityCode);
-		 * query.setPageSize(10); query.setPageNumber(currentpage);
-		 * BusStationSearch busStationSearch = new BusStationSearch(this,query);
-		 * busStationSearch.setOnBusStationSearchListener(this);
-		 * busStationSearch.searchBusStationAsyn();
-		 */
+//        drawMarkers();
     }
 
     /**
@@ -208,43 +252,21 @@ public class BuslineActivity extends Activity implements OnMarkerClickListener,
         return false;// 点击marker时把此marker显示在地图中心点
     }
 
-//	/**
-//	 * 选择城市
-//	 */
-//	@Override
-//	public void onItemSelected(AdapterView<?> parent, View view, int position,
-//			long id) {
-//		String cityString = itemCitys[position];
-//		cityCode = cityString.substring(cityString.indexOf("-") + 1);
-//	}
-//
-//	@Override
-//	public void onNothingSelected(AdapterView<?> arg0) {
-//		cityCode = "010";
-//	}
-
     /**
      * 公交线路搜索返回的结果显示在dialog中
      */
     public void showResultList(List<BusLineItem> busLineItems) {
         BusLineDialog busLineDialog = new BusLineDialog(this, busLineItems);
-//        busLineDialog.onListItemClicklistener(new OnListItemlistener() {
-//            @Override
-//            public void onListItemClick(BusLineDialog dialog,
-//                                        final BusLineItem item) {
-                showProgressDialog();
-//                String lineId = item.getBusLineId();// 得到当前点击item公交线路id
-                String lineId = busLineItems.get(0).getBusLineId();// 得到当前点击item公交线路id
-                busLineQuery = new BusLineQuery(lineId, SearchType.BY_LINE_ID,
-                        cityCode);// 第一个参数表示公交线路id，第二个参数表示公交线路id查询，第三个参数表示所在城市名或者城市区号
-                BusLineSearch busLineSearch = new BusLineSearch(
-                        BuslineActivity.this, busLineQuery);
-                busLineSearch.setOnBusLineSearchListener(BuslineActivity.this);
-                busLineSearch.searchBusLineAsyn();// 异步查询公交线路id
-//            }
-//        });
+        showProgressDialog();
+        String lineId = busLineItems.get(0).getBusLineId();// 得到当前点击item公交线路id
+        busLineQuery = new BusLineQuery(lineId, SearchType.BY_LINE_ID,
+                cityCode);// 第一个参数表示公交线路id，第二个参数表示公交线路id查询，第三个参数表示所在城市名或者城市区号
+        BusLineSearch busLineSearch = new BusLineSearch(
+                BuslineActivity.this, busLineQuery);
+        busLineSearch.setOnBusLineSearchListener(BuslineActivity.this);
+        busLineSearch.searchBusLineAsyn();// 异步查询公交线路id
         busLineDialog.get_station();
-//        busLineDialog.show();
+//        drawMarkers();
 
     }
 
@@ -259,11 +281,10 @@ public class BuslineActivity extends Activity implements OnMarkerClickListener,
 
         private List<BusLineItem> busLineItems;
         private BusLineAdapter busLineAdapter;
-        private Button preButton, nextButton;
         protected OnListItemlistener onListItemlistener;
         private List<String> list_station;
 
-        private MyAdapter myAdapter;
+
         private Context ctx;
 
         public BusLineDialog(Context context, int theme) {
@@ -282,50 +303,14 @@ public class BuslineActivity extends Activity implements OnMarkerClickListener,
             busLineAdapter = new BusLineAdapter(context, busLineItems);
         }
 
-//
-//        @Override
-//        protected void onCreate(Bundle savedInstanceState) {
-//            super.onCreate(savedInstanceState);
-//            setContentView(R.layout.busline_dialog);
-//            Intent intent = new Intent(getApplicationContext(),BuslineActivity.class);
-//            startActivity(intent);
-//            preButton = (Button) findViewById(R.id.preButton);
-//            nextButton = (Button) findViewById(R.id.nextButton);
-//            listView = (ListView) findViewById(R.id.listview);
-//            listView.setAdapter(busLineAdapter);
-//            listView.setOnItemClickListener(new OnItemClickListener() {
-//                @Override
-//                public void onItemClick(AdapterView<?> arg0, View arg1,
-//                                        int arg2, long arg3) {
-//                    onListItemlistener.onListItemClick(BusLineDialog.this,
-//                            busLineItems.get(arg2));
-//                    dismiss();
-//                    get_station();
-//
-//                }
-//            });
-//            preButton.setOnClickListener(this);
-//            nextButton.setOnClickListener(this);
-//            if (currentpage <= 0) {
-//                preButton.setEnabled(false);
-//            }
-//            if (currentpage >= busLineResult.getPageCount() - 1) {
-//                nextButton.setEnabled(false);
-//            }
-//        }
 
         public void get_station() {
-            	/*
+                /*
                  *获取公交线路  起步价 所有站点信息
 				 */
             tv_bus_name.setText("公交：98路");
             List<BusStationItem> list = busLineItems.get(0).getBusStations();
-//            String station = list.get(0).getBusStationName();
-//            for (int i = 1; i < list.size(); i++) {
-//                Log.e(TGA, "所有站点：" + list.get(i).getBusStationName());
-//                station = station + "→" + list.get(i).getBusStationName();
-//            }
-//            tv_bus_station.setText(station);
+//            Log.d(TGA, "get_station: " + list);
             String station = null;
             list_station = new ArrayList<String>();
             for (int i = 0; i < list.size(); i++) {
@@ -334,30 +319,15 @@ public class BuslineActivity extends Activity implements OnMarkerClickListener,
             }
             Log.e(TGA, String.valueOf(list_station));
 
-            myAdapter = new MyAdapter(BuslineActivity.this,list_station);
+            myAdapter = new MyAdapter(BuslineActivity.this, list_station);
             lv_station.setAdapter(myAdapter);
-//            lv_station.setStackFromBottom(true);
-//            lv_station.setTranscriptMode(ListView.TRANSCRIPT_MODE_ALWAYS_SCROLL);
 
-            int index = lv_station.getFirstVisiblePosition();
-            View v = lv_station.getChildAt(10);
-            int top = (v == null)?10:v.getTop();
-            lv_station.setSelectionFromTop(15,top);
+//            int index = lv_station.getFirstVisiblePosition();
+//            View v = lv_station.getChildAt(10);
+//            int top = (v == null) ? 10 : v.getTop();
+//            lv_station.setSelectionFromTop(15, top);
         }
 
-//        @Override
-//        public void onClick(View v) {
-//            this.dismiss();
-//            if (v.equals(preButton)) {
-//                currentpage--;
-//            } else if (v.equals(nextButton)) {
-//                currentpage++;
-//            }
-//            showProgressDialog();
-//            busLineQuery.setPageNumber(currentpage);// 设置公交查询第几页
-//            busLineSearch.setOnBusLineSearchListener(BuslineActivity.this);
-//            busLineSearch.searchBusLineAsyn();// 异步查询公交线路名称
-//        }
     }
 
     /**
@@ -378,6 +348,7 @@ public class BuslineActivity extends Activity implements OnMarkerClickListener,
         } else {
             ToastUtil.showerror(BuslineActivity.this, rCode);
         }
+
 
     }
 
@@ -414,6 +385,97 @@ public class BuslineActivity extends Activity implements OnMarkerClickListener,
         } else {
             ToastUtil.showerror(BuslineActivity.this, rCode);
         }
+        drawMarkers("石马", Constants.SHIMA);
+        lv_station.setSelection(18);
+
+        //定时器固定时间消息
+        mHandler = new Handler() {
+            @Override
+            public void handleMessage(Message msg) {
+                super.handleMessage(msg);
+                myAdapter.notifyDataSetChanged();
+                if (msg.what == 1) {
+                    timecount++;
+                    if ((timecount + 19) < myAdapter.getCount()) {
+                        station = String.valueOf(myAdapter.getItem(timecount + 19));
+                        Log.d(TGA, "handleMessage: " + station);
+                        tv_cur_station.setText("当前站点：" + station);
+                        tv_cur_station.setTextColor(Color.RED);
+
+                        lv_station.getItemAtPosition(18);
+
+//                        lv_station.setSelection(timecount+18);
+
+                    } else {
+                        timecount = 0;
+                        marker.remove();
+                        station = "石马";
+                        drawMarkers(station, Constants.SHIMA);
+                        tv_cur_station.setText("当前站点：石马");
+                        tv_cur_station.setTextColor(Color.RED);
+
+
+                    }
+
+
+                    switch (timecount) {
+                        case 1:
+                            marker.remove();
+                            drawMarkers("荷塘村", Constants.HETANG);
+//                            changeStation("荷塘村");
+                            break;
+                        case 2:
+                            marker.remove();
+                            drawMarkers("吴尚村", Constants.WUSHANG);
+//                            changeStation("吴尚村");
+                            break;
+                        case 3:
+                            marker.remove();
+                            drawMarkers("陇西路", Constants.LONGXILU);
+//                            changeStation("陇西路");
+
+                            break;
+                        case 4:
+                            marker.remove();
+                            drawMarkers("铁心桥西", Constants.TIEXUNQIAOXI);
+//                            changeStation("铁心桥西");
+
+                            break;
+                        case 5:
+                            marker.remove();
+                            drawMarkers("春江路东站", Constants.CHUNJIANGLUDONGZHAN);
+//                            changeStation("春江路东站");
+
+                            break;
+                        case 6:
+                            marker.remove();
+                            drawMarkers("春江路西站", Constants.CHUNJIANGXILUXIZHAN);
+//                            changeStation("春江路西站");
+
+                            break;
+                        case 7:
+                            marker.remove();
+                            drawMarkers("江泉路", Constants.JIANGQUANLU);
+//                            changeStation("江泉路");
+
+                            break;
+                        case 8:
+                            marker.remove();
+                            drawMarkers("春江新城", Constants.CHUNJIANGXINCHERNG);
+//                            changeStation("春江新城");
+                        default:
+                            break;
+                    }
+
+                }
+
+
+            }
+        };
+
+
     }
+
+
 
 }

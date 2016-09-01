@@ -15,6 +15,8 @@ import com.amap.api.maps2d.AMap;
 import com.amap.api.maps2d.LocationSource;
 import com.amap.api.maps2d.MapView;
 import com.amap.api.maps2d.model.BitmapDescriptorFactory;
+import com.amap.api.maps2d.model.LatLng;
+import com.amap.api.maps2d.model.MarkerOptions;
 import com.amap.api.maps2d.model.MyLocationStyle;
 
 import java.util.Map;
@@ -49,6 +51,15 @@ public class MainActivity extends Activity implements LocationSource,AMapLocatio
         if (aMap == null){
             aMap = mMapView.getMap();
             setUpMap();
+            LatLng x = new LatLng(118.7782,31.9627);
+            //添加标记
+            MarkerOptions markerOptions = new MarkerOptions();
+            markerOptions.position(x);
+            markerOptions.title("石马");
+            markerOptions.draggable(true);
+            markerOptions.icon(BitmapDescriptorFactory
+                    .fromResource(R.drawable.location_marker));
+            aMap.addMarker(markerOptions);
         }
     }
 
